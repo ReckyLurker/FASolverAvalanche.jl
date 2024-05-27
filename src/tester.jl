@@ -1,20 +1,53 @@
 include("./MeshParser.jl")
 include("./Mesher.jl")
 include("./preprocess.jl")
+include("./solver.jl")
 import GLMakie as Mke # Visualizer
 import Images.RGB as RGB # Color Schemes
 import Images.Gray as Gray 
 
-# Linear Map from range(a,b) to range(c,d) [Assuming x lies in (a,b)]
-function map(a,b,c,d,x)
-    return c + (d - c)/(b-a)*(x-a)
-end
-
-mesh, points, faces = generateMesh("/home/recklurker/RWTHIntern/Julia/points",
+Cells, points, faces = preProcess("/home/recklurker/RWTHIntern/Julia/points",
                     "/home/recklurker/RWTHIntern/Julia/faces",
-                    "/home/recklurker/RWTHIntern/Julia/faceLabels", visualizeMesh=true)
+                    "/home/recklurker/RWTHIntern/Julia/faceLabels")
 
-# To Visualize mesh
+MeshBounds(Cells)
+# setInitialConditionsPolygon([1.0, 5.0, -2.0,2.0], Cells, h0 = 0.1)
+
+# p0 = InitPressure(Cells, 0.5, 1.25, 1.4)
+# println(" ")
+# h0 = 0.1 -> Red, else Blue 
+# colors = Vector(undef, length(faces))
+# Red = RGB(1.0,0.0,0.0)
+# Blue = RGB(0.0,0.0,1.0)
+# Yellow = RGB(1.0,1.0,0.0)
+# # Visualizer
+# colors = fill(Blue, length(Cells))
+# Threads.@threads for i in eachindex(Cells)
+#     if p0[i] > 1e-6
+#         colors[i] = Red
+#     elseif p0[i] < 0
+#         colors[i] = Yellow
+#     else
+#         colors[i] = Blue
+#     end
+# end
+
+# mesh = generateMesh(points, faces)
+# println(MeshBounds(Cells))
+# viz(mesh, color=colors, showsegments=true)
+# Mesh Generation and visualization
+
+
+# # Linear Map from range(a,b) to range(c,d) [Assuming x lies in (a,b)]
+# function map(a,b,c,d,x)
+#     return c + (d - c)/(b-a)*(x-a)
+# end
+
+# points, faces = generateMesh("/home/recklurker/RWTHIntern/Julia/points",
+#                     "/home/recklurker/RWTHIntern/Julia/faces",
+#                     "/home/recklurker/RWTHIntern/Julia/faceLabels")
+# mesh = generateMesh(points, faces)
+# # To Visualize mesh
 # viz(mesh, color=:white, showsegments=true)
 
 # Calculate Normals
@@ -64,3 +97,4 @@ mesh, points, faces = generateMesh("/home/recklurker/RWTHIntern/Julia/points",
 #     end
 # end
 # viz(mesh, showsegments=true, color=colors_neigh)
+

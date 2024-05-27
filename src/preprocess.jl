@@ -2,7 +2,7 @@ include("./MeshParser.jl") # Parses Mesh
 include("Mesher.jl") # Pre-Processing Algorithms and cell definitions
 import DelimitedFiles.writedlm as write
 
-function generateMesh(locationPoints, locationFaces, locationFaceLabels; visualizeMesh=false)
+function generateMesh(locationPoints::String, locationFaces::String, locationFaceLabels::String)
     println("Using ", Threads.nthreads(), " threads")
     Points = parsePoints(locationPoints)
     Faces, nFaces = parseFaces(locationFaces)
@@ -20,32 +20,54 @@ function generateMesh(locationPoints, locationFaces, locationFaceLabels; visuali
         v = [idx_map[j] for j in FaFaces[i]]
         FaFaces_new[i] = tuple(v...)
     end
-    if(visualizeMesh)
-        # Generate Mesh for visualization    
-        connec = connect.(FaFaces_new, Ngon)
-        mesh = SimpleMesh(FaPoints, connec)
-        return mesh, FaPoints, FaFaces_new
-    end
     return FaPoints, FaFaces_new
+end
+
+function generateMesh(points::Vector, faces::Vector)
+    # Generate Mesh for visualization    
+    connec = connect.(faces, Ngon)
+    mesh = SimpleMesh(points, connec)
+    return mesh
 end
 
 
 # Cache Optimization needed! - Store extensive computational data [Neighbours, etc.] and reload them if no changes are found in the input file.
-function preProcess(locationPoints, locationFaces, locationFaceLabels)
+function preProcess(locationPoints::String, locationFaces::String, locationFaceLabels::String)
     points, faces = generateMesh(locationPoints, locationFaces, locationFaceLabels)
     normals = calculateNormals(points, faces)
     centers = [p[1] for p in normals] # Face Centers
+    edgeCenters = computeEdgeCenters(points, faces) # Compute Edge Centers 
     directions_face = [p[2] for p in normals] # Face Normal directions
-    neighbours = computeNeighbours(points, faces) # Neighbours of each cell [Cache This by writing to disk]
+    if isfile("./neighbours.txt")
+        neighbours = parseNeighbours("./neighbours.txt")
+    else 
+        neighbours = computeNeighbours(points, faces) # Neighbours of each cell [Cache This by writing to disk]
+        
+    end
     areas = computeFaceAreas(points, faces, centers) # Areas of each face
     edgeLengths = computeEdgeLengths(points, faces) # Edge Lengths of each edge of each face
     dets = calculateDeterminants(points, faces) # Integral (Jacobian) / Coordinate (DCM) transform determinant
-     
-    write("./neighbours.txt", neighbours)
     # Construct Mesh Cells [with computed Data]
     meshCells = Vector(undef, length(faces))
     Threads.@threads for j in eachindex(faces)
-        meshCells[j] = Cell(centers[j], j, [faces[j]...], directions_face[j], areas[j], edgeLengths[j],neighbours[j], dets[j], Vec3(0.0,0.0,0.0), 0.0, 0.0)
+        meshCells[j] = Cell(centers[j], j, [faces[j]...], edgeCenters[j], directions_face[j], areas[j], edgeLengths[j],neighbours[j], dets[j], Vec3(0.0,0.0,0.0), 0.0, 0.0)
     end
-    return meshCells
+    return meshCells, points, faces
+end
+
+function MeshBounds(Cells)
+    x_min = Cells[1].center_coords.coords[1]
+    y_min = Cells[1].center_coords.coords[2]
+    x_max = Cells[1].center_coords.coords[1]
+    y_max = Cells[1].center_coords.coords[2]
+    for i in eachindex(Cells)
+        coords = Cells[i].center_coords
+        x = coords.coords[1]
+        y = coords.coords[2]
+        x_min = min(x_min, x)
+        x_max = max(x_max, x)
+        y_min = min(y_min, y)
+        y_max = max(y_max, y)
+    end
+    return [x_min, x_max, y_min, y_max]
 end
