@@ -98,10 +98,8 @@ function computeNeighbours(points, faces)
     Threads.@threads for k in 1:(length(points)*length(faces)-1)
         i = k ÷ length(faces) + 1
         j = k % length(faces) + 1
-        for v in faces[j]
-            if i == v 
-                push!(point_face_map[i], j)
-            end
+        if i in faces[j]
+            push!(point_face_map[i], j)
         end
         if j == 1
             update(pbar_neigh)

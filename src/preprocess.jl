@@ -1,6 +1,6 @@
 include("./MeshParser.jl") # Parses Mesh
 include("Mesher.jl") # Pre-Processing Algorithms and cell definitions
-import DelimitedFiles.writedlm as write
+import JLD2 
 
 function generateMesh(locationPoints::String, locationFaces::String, locationFaceLabels::String)
     println("Using ", Threads.nthreads(), " threads")
@@ -38,11 +38,14 @@ function preProcess(locationPoints::String, locationFaces::String, locationFaceL
     centers = [p[1] for p in normals] # Face Centers
     edgeCenters = computeEdgeCenters(points, faces) # Compute Edge Centers 
     directions_face = [p[2] for p in normals] # Face Normal directions
-    if isfile("./neighbours.txt")
-        neighbours = parseNeighbours("./neighbours.txt")
+    if isfile("./stored/neighbours.jld2")
+        neighbours = JLD2.load_object("./stored/neighbours.jld2")
     else 
+        if !isdir("./stored/")
+            mkdir("./stored")
+        end
         neighbours = computeNeighbours(points, faces) # Neighbours of each cell [Cache This by writing to disk]
-        
+        JLD2.save_object("./stored/neighbours.jld2", neighbours)
     end
     areas = computeFaceAreas(points, faces, centers) # Areas of each face
     edgeLengths = computeEdgeLengths(points, faces) # Edge Lengths of each edge of each face

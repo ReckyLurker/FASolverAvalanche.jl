@@ -5,16 +5,24 @@ include("./solver.jl")
 import GLMakie as Mke # Visualizer
 import Images.RGB as RGB # Color Schemes
 import Images.Gray as Gray 
+using UnicodePlots
+import BenchmarkTools
 
 Cells, points, faces = preProcess("/home/recklurker/RWTHIntern/Julia/points",
                     "/home/recklurker/RWTHIntern/Julia/faces",
                     "/home/recklurker/RWTHIntern/Julia/faceLabels")
 
-MeshBounds(Cells)
-# setInitialConditionsPolygon([1.0, 5.0, -2.0,2.0], Cells, h0 = 0.1)
+println(MeshBounds(Cells))
+setInitialConditionsPolygon([1000.0, 1300.0, 314.0,600.0], Cells, h0 = 0.1)
 
-# p0 = InitPressure(Cells, 0.5, 1.25, 1.4)
-# println(" ")
+function initpressureg(x)
+    p0 = InitPressure(Cells, fdiff.value(x[1]), fdiff.value(x[2]), fdiff.value(x[3]), points, atol=1e-2)
+    return p0
+end
+
+initpressureg([0.5, 1.25, 1.4])
+
+
 # h0 = 0.1 -> Red, else Blue 
 # colors = Vector(undef, length(faces))
 # Red = RGB(1.0,0.0,0.0)
@@ -23,18 +31,18 @@ MeshBounds(Cells)
 # # Visualizer
 # colors = fill(Blue, length(Cells))
 # Threads.@threads for i in eachindex(Cells)
-#     if p0[i] > 1e-6
+#     if Cells[i].h == 0.1
 #         colors[i] = Red
-#     elseif p0[i] < 0
-#         colors[i] = Yellow
-#     else
+#     elseif p0[i] != 0
+#         colors[i] = Yellow 
+#     else 
 #         colors[i] = Blue
 #     end
 # end
 
 # mesh = generateMesh(points, faces)
-# println(MeshBounds(Cells))
-# viz(mesh, color=colors, showsegments=true)
+# Mke.plot(mesh, color=colors, showsegments=true, label="Mesh")
+
 # Mesh Generation and visualization
 
 
