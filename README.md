@@ -7,3 +7,11 @@
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/ReckyLurker/FASolverAvalanche.jl?svg=true)](https://ci.appveyor.com/project/ReckyLurker/FASolverAvalanche-jl)
 [![Coverage](https://codecov.io/gh/ReckyLurker/FASolverAvalanche.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/ReckyLurker/FASolverAvalanche.jl)
 [![Coverage](https://coveralls.io/repos/github/ReckyLurker/FASolverAvalanche.jl/badge.svg?branch=main)](https://coveralls.io/github/ReckyLurker/FASolverAvalanche.jl?branch=main)
+
+The Following Packages are used (Dependencies)
+1. Meshes for Mesh Vizualization
+2. LinearAlgebra
+3. ProgressBars
+4. DelimitedFiles
+5. GLMakie 
+6. Images

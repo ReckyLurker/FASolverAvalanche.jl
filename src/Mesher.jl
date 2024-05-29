@@ -1,6 +1,7 @@
 import Meshes as Mesher
 import LinearAlgebra as LinAlg  
 import ProgressBars as bar
+import Base.+, Base.*, Base.one
 
 function divide(Center::Vector{Float64}, n::Int)::Mesher.Point3
     return Mesher.Point3(Center[1]/n, Center[2]/n, Center[3]/n)
@@ -50,7 +51,7 @@ function calculateDeterminants(points, faces)::Vector{Float64}
         unitNormal = calculateUnitNormal(vertices[2] - vertices[1], vertices[3] - vertices[1])    
         vA = LinAlg.normalize(vertices[2] - vertices[1])
         vB = -calculateUnitNormal(vA, unitNormal)
-        result[i] = det(computeTransformationMatrix([vA, vB, unitNormal]))
+        result[i] = LinAlg.det(computeTransformationMatrix([vA, vB, unitNormal]))
         update(pbar_det)
     end
     println("Calculating determinants took: ", time() - t_start, " seconds")
@@ -58,14 +59,15 @@ function calculateDeterminants(points, faces)::Vector{Float64}
 end
 
 # assuming a Global Array of Points and Faces is maintained
-struct Cell
+mutable struct Cell
     center_coords::Mesher.Point3 # Global Coordinates of the Face Center
     center_idx::Int # Index of the Face
     vertices_idx::Vector{Int} # Indicies of the vertices [For accessing from global points array]
+    edgeCenters::Vector{Mesher.Point3}
     faceNormal::Mesher.Vec3 # Surface Normal
     area::Float64 # Area of the Cell
     edgeLengths::Vector{Float64} # Edge Lengths of the edges [same order as of edge list]
-    neigbours::Vector{Int} # Index of neighbouring face centers of each point [same order as of edge list]
+    neighbours::Vector{Int} # Index of neighbouring face centers of each point [same order as of edge list]
     det::Float64 # Integral/Coordinate Transform determinant
     vel::Mesher.Vec3 # velocity of fluid [Global Coordinate System]
     h::Float64 # Flow thickness on this Cell
@@ -96,10 +98,8 @@ function computeNeighbours(points, faces)
     Threads.@threads for k in 1:(length(points)*length(faces)-1)
         i = k ÷ length(faces) + 1
         j = k % length(faces) + 1
-        for v in faces[j]
-            if i == v 
-                push!(point_face_map[i], j)
-            end
+        if i in faces[j]
+            push!(point_face_map[i], j)
         end
         if j == 1
             update(pbar_neigh)
@@ -145,7 +145,7 @@ function computeFaceAreas(points, faces, centers)
 end
 
 function computeEdgeLengths(points, faces)
-    edgeLengths = [Vector{Float64}() for _ in length(faces)]
+    edgeLengths = [Vector{Float64}() for _ in eachindex(faces)]
     println("Computing Edge Lengths...")
     Threads.@threads for i in eachindex(faces)
         for j in eachindex(faces[i])
@@ -155,3 +155,28 @@ function computeEdgeLengths(points, faces)
     end
     return edgeLengths
 end
+
+function computeEdgeCenters(points, faces)
+    edgeCenters = [Vector{Point3}() for _ in eachindex(faces)]
+    Threads.@threads for j in eachindex(faces) 
+        for i in eachindex(faces[j])
+            ii = i % length(faces[j]) + 1
+            push!(edgeCenters[j], 0.5 * (points[faces[j][i]] + points[faces[j][ii]]))
+        end
+    end
+    return edgeCenters
+end
+
+# Common Operations
+function +(A::Mesher.Point3, B::Mesher.Point3)::Mesher.Point3
+    return Mesher.Point3(A.coords .+ B.coords)
+end
+
+function *(A::Float64, B::Mesher.Point3)::Mesher.Point3
+    return Mesher.Point3(A .* B.coords)
+end
+
+function *(A::Mesher.Point3, B::Float64)::Mesher.Point3
+    return Mesher.Point3(B .* A.coords)
+end
+

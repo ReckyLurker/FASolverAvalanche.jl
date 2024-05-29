@@ -1,5 +1,7 @@
 module FASolverAvalanche
 
-# Write your package code here.
+function helloWorld()
+    print("Julia Packages are awesome!")
+end
 
 end

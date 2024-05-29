@@ -1,20 +1,61 @@
 include("./MeshParser.jl")
 include("./Mesher.jl")
 include("./preprocess.jl")
+include("./solver.jl")
 import GLMakie as Mke # Visualizer
 import Images.RGB as RGB # Color Schemes
 import Images.Gray as Gray 
+using UnicodePlots
+import BenchmarkTools
 
-# Linear Map from range(a,b) to range(c,d) [Assuming x lies in (a,b)]
-function map(a,b,c,d,x)
-    return c + (d - c)/(b-a)*(x-a)
+Cells, points, faces = preProcess("/home/recklurker/RWTHIntern/Julia/points",
+                    "/home/recklurker/RWTHIntern/Julia/faces",
+                    "/home/recklurker/RWTHIntern/Julia/faceLabels")
+
+println(MeshBounds(Cells))
+setInitialConditionsPolygon([1000.0, 1300.0, 314.0,600.0], Cells, h0 = 0.1)
+
+function initpressureg(x)
+    p0 = InitPressure(Cells, fdiff.value(x[1]), fdiff.value(x[2]), fdiff.value(x[3]), points, atol=1e-2)
+    return p0
 end
 
-mesh, points, faces = generateMesh("/home/recklurker/RWTHIntern/Julia/points",
-                    "/home/recklurker/RWTHIntern/Julia/faces",
-                    "/home/recklurker/RWTHIntern/Julia/faceLabels", visualizeMesh=true)
+initpressureg([0.5, 1.25, 1.4])
 
-# To Visualize mesh
+
+# h0 = 0.1 -> Red, else Blue 
+# colors = Vector(undef, length(faces))
+# Red = RGB(1.0,0.0,0.0)
+# Blue = RGB(0.0,0.0,1.0)
+# Yellow = RGB(1.0,1.0,0.0)
+# # Visualizer
+# colors = fill(Blue, length(Cells))
+# Threads.@threads for i in eachindex(Cells)
+#     if Cells[i].h == 0.1
+#         colors[i] = Red
+#     elseif p0[i] != 0
+#         colors[i] = Yellow 
+#     else 
+#         colors[i] = Blue
+#     end
+# end
+
+# mesh = generateMesh(points, faces)
+# Mke.plot(mesh, color=colors, showsegments=true, label="Mesh")
+
+# Mesh Generation and visualization
+
+
+# # Linear Map from range(a,b) to range(c,d) [Assuming x lies in (a,b)]
+# function map(a,b,c,d,x)
+#     return c + (d - c)/(b-a)*(x-a)
+# end
+
+# points, faces = generateMesh("/home/recklurker/RWTHIntern/Julia/points",
+#                     "/home/recklurker/RWTHIntern/Julia/faces",
+#                     "/home/recklurker/RWTHIntern/Julia/faceLabels")
+# mesh = generateMesh(points, faces)
+# # To Visualize mesh
 # viz(mesh, color=:white, showsegments=true)
 
 # Calculate Normals
@@ -64,3 +105,4 @@ mesh, points, faces = generateMesh("/home/recklurker/RWTHIntern/Julia/points",
 #     end
 # end
 # viz(mesh, showsegments=true, color=colors_neigh)
+
