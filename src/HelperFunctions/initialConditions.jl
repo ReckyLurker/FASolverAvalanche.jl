@@ -43,25 +43,7 @@ function findRegularPolygon(coord_limits::Vector{Float64}; npoints = 4)::Vector{
 end
 
 # Find All Cells inside a regular polygon given by the values: [x_min, x_max, y_min, y_max], inclusion of corners by epsilon.
-function cellsInsideBoundingPolygon(Cells::Vector{Cell}, coord_limits::Vector{Float64}; npoints = 4, epsilon = 1e-6)::Vector{Int}
-    point_uncertainty = [-epsilon, epsilon, -epsilon, epsilon]
-    polygon_points = findRegularPolygon(coord_limits .+ point_uncertainty, npoints = npoints)
-    cells_inside_polygon = []
-    for i in eachindex(Cells)
-        if(testInside(Cells[i].center_coords, polygon_points))
-            push!(cells_inside_polygon, i)
-        end
-    end
-    return cells_inside_polygon
-end
-
-# For scalar second order central interpolation [scalar variables: h and pb]
-@inline function central_interpolate(face_center1::Meshes.Point3, face_center2::Meshes.Point3, edge_center::Meshes.Point3, vars::Vector)::eltype(vars[1])
-    l = length(vars)
-    if l != 2
-        throw("Expected 2, got $l")
-    end
-    pe = edge_center - face_center1
+function cellsInsideBoundingPolygon(Cells::Vectogit reset --hard 2f5451f
     pen = face_center_2 - face_center1
     frac = magnitude(pe)/magnitude(pen)
     return frac*vars[1] + (1-frac)*vars[2]
@@ -83,20 +65,7 @@ function central_interpolate(face_center1::Meshes.Point3, face_center2::Meshes.P
     local_coords_edge = frac .* local_coords1 .+ (1-frac) .* local_coords2
     Te = computeTransformationMatrix(local_coords_edge)
 
-    return LinAlg.transpose(Te) * (frac * Tp * vars[1] + (1-frac) * Tn * vars[2])
-end
-
-# Currently limited to 2 values for interpolation at edge, fix this in future!
-# Allows user-defined interpolation functions [which are linear, incorrect results may be obtained for discontinuous/non-linear interpolators] 
-# Compute Hessians for pressure at edge equations [constraint and momentum eqns]
-function computeHessians(Cells; interpolator = central_interpolate)
-    hessians = [Vector() for _ in eachindex(Cells)]
-    Threads.@threads for i in eachindex(Cells)
-        for j in eachindex(Cells[i].neighbours)
-            idx = Cells[i].neighbours[j]
-            function pressureContribution(x)
-                l = div(length(x), 2)
-                hvalues = x[1:l]
+    return LinAlg.transpose(Te) * (frac * Tp * vgit reset --hard 2f5451f
                 pvalues = x[l+1:end]
                 h_edge = func(Cells[i].center_coords, Cells[idx].center_coords, Cells[i].edge_centers[j], hvalues)
                 p_edge = func(Cells[i].center_coords, Cells[idx].center_coords, Cells[i], edge_centers[j], pvalues)
